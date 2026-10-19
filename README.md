@@ -91,7 +91,14 @@ The agent will never change a financial assertion or approve a release by itself
 
 ## First milestone
 
-The initial implementation contains the payment domain model, an in-memory service and tests proving that an idempotency key cannot create two payments or be reused with a different request.
+The current implementation contains the deterministic payment core:
+
+- immutable payment and timeline-event models;
+- input validation for amounts, currencies and idempotency keys;
+- idempotent in-memory payment creation;
+- an explicit payment state machine;
+- an ordered in-memory transaction timeline;
+- domain-specific errors and PyTest coverage.
 
 Run:
 
