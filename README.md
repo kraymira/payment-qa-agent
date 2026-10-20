@@ -1,100 +1,17 @@
 # Payment QA Agent
 
-A compact learning and portfolio project for the BVNK AI-Native QA Automation Engineer interview.
+A small learning and portfolio project for an AI-Native QA Automation Engineer role.
 
-The detailed Russian implementation plan, including independently runnable MVP releases and the extended version, is available in [`PROJECT_PLAN_RU.md`](PROJECT_PLAN_RU.md).
+The project starts with deterministic payment rules and evolves into a guarded AI workflow for test-failure triage. Financial rules remain deterministic; AI may collect evidence and explain a probable cause, but it cannot change tests or approve a release.
 
-## Problem statement
+The detailed Russian plan is in [`PROJECT_PLAN_RU.md`](PROJECT_PLAN_RU.md).
 
-Payment failures are expensive to investigate. A QA engineer often has to correlate test output, API responses, transaction state, logs and recent code changes before deciding whether a failure is a product defect, a flaky test, an environment issue or an expected external failure.
+## Current release: Payment Core
 
-This project builds a small payment sandbox and a guarded AI workflow that triages failed tests. The AI does not decide whether money is correct. Financial behaviour is protected by deterministic Python assertions and explicit invariants.
-
-## What the project demonstrates
-
-- Python and PyTest automation.
-- Payment-domain fundamentals.
-- API and state-transition testing.
-- Idempotency, retries and duplicate prevention.
-- Webhook deduplication and out-of-order delivery.
-- Decimal-based fees and ledger invariants.
-- Structured failure evidence.
-- LangGraph orchestration and LangSmith evaluation.
-- Guardrails and human escalation.
-- K6 performance checks.
-- CI quality gates.
-
-## Target workflow
-
-```text
-Code change
-  -> PyTest payment tests
-  -> structured failure bundle
-  -> triage agent
-       -> inspect failure
-       -> inspect transaction timeline
-       -> inspect relevant logs
-       -> classify probable cause
-       -> estimate confidence
-  -> deterministic guardrail
-       -> draft bug report
-       -> request human review
-       -> or mark as known infrastructure issue
-```
-
-The agent will never change a financial assertion or approve a release by itself.
-
-## Scope
-
-### Phase 1 — deterministic payment core
-
-- Payment model and explicit state machine.
-- Idempotent payment creation.
-- PyTest coverage for duplicates and conflicting requests.
-- Decimal amounts and currency validation.
-
-### Phase 2 — API and asynchronous behaviour
-
-- FastAPI endpoints.
-- Retry-safe payment creation.
-- Duplicate and out-of-order webhooks.
-- Transaction timeline and structured logs.
-
-### Phase 3 — failure triage
-
-- Machine-readable PyTest failure artifact.
-- Rule-based baseline classifier.
-- LLM provider interface with an offline fake for tests.
-- Evidence-based triage report.
-
-### Phase 4 — agentic workflow
-
-- LangGraph state and nodes.
-- Tool calls with narrow permissions.
-- Confidence threshold and human escalation.
-- LangSmith traces, datasets and evaluations.
-
-### Phase 5 — quality gate and load testing
-
-- K6 idempotency and latency scenarios.
-- CI pipeline.
-- Release recommendation based on deterministic checks plus agent evidence.
-
-## Architecture principles
-
-1. Deterministic code owns financial truth.
-2. The agent must cite evidence from supplied artifacts.
-3. Tool permissions are read-only during triage.
-4. Low-confidence cases are escalated.
-5. AI output is evaluated against labelled examples.
-6. Every escaped defect becomes a regression test or evaluation case.
-
-## First milestone
-
-The current implementation contains the deterministic payment core:
+Implemented:
 
 - immutable payment and timeline-event models;
-- input validation for amounts, currencies and idempotency keys;
+- amount, currency and idempotency-key validation;
 - idempotent in-memory payment creation;
 - an explicit payment state machine;
 - an ordered in-memory transaction timeline;
@@ -105,3 +22,19 @@ Run:
 ```bash
 uv run pytest
 ```
+
+## Lean roadmap
+
+1. **Payment Core** — deterministic payment rules. Complete.
+2. **Deterministic Triage** — classify three JSON failure examples without an LLM.
+3. **Guarded AI Triage** — use LangGraph and three read-only tools, with deterministic rules taking priority.
+
+HTTP APIs, LangSmith, K6, CI and persistence are optional extensions after the MVP.
+
+## Principles
+
+- Add a dependency only when the current release uses it.
+- Keep financial assertions deterministic.
+- Require evidence for every triage conclusion.
+- Escalate insufficient evidence to a human.
+- Keep agent tools narrow and read-only.

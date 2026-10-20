@@ -1,474 +1,287 @@
-# Payment QA Agent — план продукта и реализации
+# Payment QA Agent — сокращённый план проекта
 
-## Назначение проекта
+## Цель
 
-Payment QA Agent — учебный и портфолио-проект для подготовки к роли AI-Native QA Automation Engineer в BVNK. Он демонстрирует, как обычная автоматизация платёжного сервиса развивается в безопасный agentic QA workflow.
+Payment QA Agent показывает переход от обычных платёжных автотестов к безопасному AI-assisted triage.
 
-Проект решает одну понятную задачу: после падения платёжного автотеста автоматически собрать доказательства, исследовать их с помощью ограниченного набора инструментов и подготовить структурированный triage report. Финансовую корректность определяет только детерминированный код. AI помогает анализировать причины и объяснять результат, но не меняет проверки и не принимает окончательное решение о релизе.
-
-Основная ценность проекта — не количество технологий, а законченная инженерная история:
+Проект решает одну задачу: получить данные о падении теста, собрать связанные факты и определить наиболее вероятную категорию проблемы. Финансовые правила проверяет обычный Python-код. AI анализирует доказательства и объясняет вывод, но не изменяет тесты и не принимает решение о релизе.
 
 ```text
-Платёжный сценарий
-  → автоматическая проверка
-  → обнаружение нарушения
-  → сбор доказательств
-  → исследование с помощью agent tools
-  → классификация причины
-  → guardrail и human review
+Payment failure
+  → structured evidence
+  → deterministic checks
+  → guarded AI analysis
+  → triage report or human review
 ```
 
-## Продуктовый сценарий
+## Правило разработки
 
-Клиент отправляет запрос на создание платежа с `Idempotency-Key`. Сервис обрабатывает запрос, но клиент не получает ответ из-за timeout и повторяет его. Ошибка реализации может создать два платежа вместо одного.
+MVP состоит из трёх последовательных релизов. Каждый релиз должен:
 
-PyTest обнаруживает нарушение инварианта, формирует failure bundle и передаёт его triage-компоненту. Агент изучает данные теста, transaction timeline и связанные логи, после чего возвращает классификацию, уверенность, список доказательств и рекомендуемое действие.
-
-Пример результата:
-
-```json
-{
-  "classification": "product_bug",
-  "confidence": 0.94,
-  "probable_cause": "Non-atomic idempotency check",
-  "evidence_ids": ["assertion-1", "payment-1", "payment-2"],
-  "recommended_action": "block_release_and_create_defect",
-  "requires_human_review": true
-}
-```
-
-Критическое нарушение `one idempotency key → one payment` блокирует релиз детерминированным правилом. AI только собирает и объясняет доказательства.
-
-# Принципы реализации
-
-## Каждый этап является рабочим продуктом
-
-Этап считается завершённым, только если:
-
-1. Его можно запустить одной задокументированной командой.
-2. Он демонстрирует полезное поведение без кода из будущих этапов.
-3. Ключевое поведение покрыто автоматическими тестами.
-4. Ошибки возвращаются в понятном и проверяемом виде.
-5. README объясняет назначение, запуск и ожидаемый результат.
-6. Все добавленные зависимости реально используются.
-7. Следующий этап расширяет готовый продукт, а не чинит недоделанную основу.
-
-## Границы ответственности AI
-
-Детерминированный код:
-
-- проверяет суммы и валюты;
-- контролирует допустимые переходы статусов;
-- обнаруживает duplicate payments;
-- проверяет финансовые инварианты;
-- применяет обязательные release rules.
-
-AI-компонент:
-
-- сопоставляет данные из нескольких источников;
-- классифицирует вероятную причину падения;
-- указывает использованные доказательства;
-- предлагает дальнейшее действие;
-- эскалирует случай человеку при недостатке данных или низкой уверенности.
-
-AI не может:
-
-- выполнять произвольные shell-команды;
-- читать произвольные файлы;
-- изменять тесты или expected results;
-- изменять платежи;
-- самостоятельно создавать внешние задачи;
-- единолично разрешать релиз.
-
-## Минимальный стек
-
-MVP использует только технологии, необходимые для основной истории:
-
-- Python 3.12+;
-- `uv` для окружения, зависимостей и запуска;
-- PyTest для автоматизации;
-- FastAPI и Pydantic для Payment API и схем данных;
-- HTTPX для API-тестов;
-- LangGraph для agent workflow;
-- один model adapter для демонстрационного LLM-запуска;
-- Ruff для linting и formatting;
-- GitHub Actions для CI;
-- один K6-сценарий для конкурентной проверки idempotency.
-
-В MVP не входят ORM, отдельная база данных, Docker, полноценный UI, Kafka, Redis, Celery, RAG, vector database, Grafana или несколько agent frameworks.
+1. Работать без кода из следующих релизов.
+2. Иметь одну понятную задачу и публичный результат.
+3. Запускаться задокументированной командой.
+4. Иметь автоматические тесты.
+5. Не содержать зависимостей, которые пока не используются.
 
 # MVP
 
-MVP состоит из пяти последовательных релизов. Каждый релиз самодостаточен, запускается отдельно и остаётся рабочим после добавления следующих возможностей.
-
 ## Релиз 1 — Payment Core
 
-### Результат
+### Рабочий результат
 
-Устанавливаемая Python-библиотека и локальная demo-команда, моделирующие создание и жизненный цикл платежа.
+Самостоятельная Python-библиотека, моделирующая безопасное создание платежа и его жизненный цикл.
 
-### Возможности
+### Функциональность
 
-- создание платежа с `Decimal` amount и трёхбуквенной валютой;
-- нормализация валюты;
+- создание платежа с `Decimal` amount;
+- нормализация и проверка валюты;
 - обязательный idempotency key;
-- повтор одинакового запроса возвращает исходный платёж;
-- повтор ключа с другим payload возвращает `IdempotencyConflict`;
-- явная state machine;
-- допустимые переходы `created → pending → completed` и `created/pending → failed`;
+- повтор одинакового запроса возвращает тот же платёж;
+- повтор ключа с другим payload вызывает `IdempotencyConflict`;
+- state machine `created → pending → completed`;
+- переход в `failed` из `created` или `pending`;
 - запрет переходов из финального статуса;
-- transaction timeline в памяти.
+- упорядоченный transaction timeline.
 
-### Демонстрация
+### Публичный API
+
+- `PaymentService`;
+- `Payment`;
+- `PaymentEvent`;
+- `PaymentStatus`;
+- доменные исключения.
+
+Внутренние validation-функции и таблица переходов не являются публичным API.
+
+### Проверка
 
 ```bash
-uv run python -m payment_qa_agent.demo
 uv run pytest
 ```
 
-Demo создаёт платёж, повторяет запрос с тем же ключом, проводит платёж по state machine и печатает transaction timeline.
-
 ### Definition of Done
 
-- demo завершается успешно и показывает один payment ID для повторного запроса;
-- негативный пример с изменённой суммой возвращает понятную ошибку;
-- все переходы state machine протестированы;
-- нет внешних сервисов и сетевых зависимостей;
-- Ruff и PyTest проходят локально.
+- правила создания платежа и idempotency покрыты тестами;
+- допустимые и запрещённые переходы покрыты тестами;
+- timeline содержит создание и каждое успешное изменение статуса;
+- неизвестный payment ID возвращает доменную ошибку;
+- проект не использует внешнюю сеть или базу данных;
+- в runtime dependencies нет сторонних пакетов.
 
-### Текущий статус
+### Статус
 
-Уже реализованы модель платежа, in-memory service, базовая idempotency и пять проходящих PyTest-тестов. Для завершения релиза нужны state machine, transaction timeline, demo-команда и Ruff.
+Релиз реализован. Следующая работа с Payment Core допустима только для исправления найденной ошибки или поддержки следующего релиза.
 
-### Демонстрируемые навыки
+## Релиз 2 — Deterministic Triage
 
-Python typing, dataclasses, enums, exceptions, `Decimal`, PyTest parametrization, тест-дизайн и основы платёжной модели.
+### Рабочий результат
 
-## Релиз 2 — Payment API Sandbox
+CLI получает JSON с данными о падении и возвращает структурированную классификацию без использования LLM.
 
-### Результат
+### Вход
 
-Локальный HTTP API, на котором можно воспроизводить payment retries и webhook-сценарии.
-
-### Возможности
-
-- `POST /payments` с `Idempotency-Key`;
-- `GET /payments/{payment_id}`;
-- `GET /payments/{payment_id}/events`;
-- endpoint для имитации webhook;
-- дедупликация webhook по event ID;
-- защита от регрессии статуса при out-of-order webhook;
-- correlation ID во всех событиях;
-- структурированные JSON-логи стандартными средствами Python.
-
-### Демонстрация
-
-```bash
-uv run fastapi dev payment_qa_agent.api:app
-uv run pytest tests/api
-```
-
-Swagger UI позволяет вручную создать платёж, повторить запрос и отправить duplicate или out-of-order webhook.
-
-### Definition of Done
-
-- API запускается одной командой;
-- OpenAPI доступен автоматически;
-- повторный HTTP-запрос не создаёт новый платёж;
-- duplicate webhook не создаёт новое событие;
-- поздний `pending` не может изменить `completed`;
-- API-тесты выполняются через HTTPX;
-- библиотека из релиза 1 продолжает работать без изменений публичного контракта.
-
-### Демонстрируемые навыки
-
-FastAPI, Pydantic, HTTPX, API testing, async flows, webhooks, retries, correlation IDs и observability.
-
-## Релиз 3 — Deterministic Failure Triage
-
-### Результат
-
-Полностью рабочий triage-инструмент без LLM. Он создаёт failure bundle и классифицирует известные типы падений по прозрачным правилам.
-
-### Failure bundle
-
-PyTest hook сохраняет JSON-артефакт:
+Один `FailureBundle`:
 
 ```json
 {
-  "test_run_id": "run-123",
   "test_name": "test_retry_does_not_duplicate_payment",
   "assertion": "expected one payment, found two",
-  "correlation_id": "corr-456",
-  "payment_ids": ["pay-1", "pay-2"],
+  "payment_ids": ["pay_1", "pay_2"],
+  "timeline": [],
   "invariant": "one idempotency key must map to one payment"
 }
 ```
 
-### Поддерживаемые классификации
+На этом этапе bundles хранятся как небольшие примеры в репозитории. Автоматический PyTest plugin для их сбора не входит в MVP.
+
+### Выход
+
+```json
+{
+  "classification": "product_bug",
+  "probable_cause": "duplicate payment",
+  "evidence_ids": ["assertion", "payment:pay_1", "payment:pay_2"],
+  "requires_human_review": false
+}
+```
+
+### Классификации
 
 - `product_bug`;
 - `test_bug`;
 - `infrastructure_issue`;
-- `expected_external_failure`;
 - `insufficient_evidence`.
 
-### Базовые сценарии
+### Сценарии
 
-1. Retry создал duplicate payment — `product_bug`.
-2. Out-of-order webhook вернул `completed` в `pending` — `product_bug`.
-3. Временная недоступность внешней зависимости — `infrastructure_issue`.
+1. Один idempotency key связан с двумя payment IDs.
+2. `completed` платёж получил недопустимый переход обратно в `pending`.
+3. В bundle недостаточно фактов для вывода.
 
-### Демонстрация
+### Запуск
 
 ```bash
-uv run pytest tests/failure_scenarios
-uv run python -m payment_qa_agent.triage artifacts/run-123.json
+uv run python -m payment_qa_agent.triage examples/duplicate_payment.json
+uv run pytest
 ```
-
-Команда возвращает проверяемый JSON с классификацией, доказательствами и рекомендуемым действием.
 
 ### Definition of Done
 
-- failure bundle формируется автоматически при падении выбранного теста;
-- три базовых сценария воспроизводимы;
-- rule-based classifier выдаёт ожидаемую классификацию;
-- результат соответствует Pydantic-схеме;
-- каждое доказательство ссылается на существующий объект в bundle;
-- инструмент работает без API-ключа и интернета.
+- три sample bundles хранятся в репозитории;
+- каждый bundle проходит schema validation;
+- CLI возвращает JSON;
+- результат содержит только существующие evidence IDs;
+- одинаковый вход всегда даёт одинаковый результат;
+- инструмент работает без API-ключа и интернета;
+- правила покрыты unit-тестами.
 
-### Демонстрируемые навыки
+### Новые зависимости
 
-PyTest hooks, structured artifacts, failure analysis, классификация ошибок, explainability и проектирование стабильного baseline перед добавлением AI.
+- `pydantic` только для входной и выходной схемы.
 
-## Релиз 4 — Guarded AI Triage Agent
+## Релиз 3 — Guarded AI Triage
 
-### Результат
+### Рабочий результат
 
-LangGraph-агент исследует failure bundle через строго ограниченные read-only tools и возвращает структурированный triage result.
+LangGraph-агент получает тот же `FailureBundle`, при необходимости запрашивает дополнительные факты через read-only tools и возвращает `TriageResult` той же формы, что deterministic classifier.
 
 ### Agent tools
 
-#### `get_failure_context`
+MVP использует только три инструмента:
 
-Возвращает assertion, stack trace, request/response, correlation ID и нарушенный инвариант.
+- `get_failure_context` — assertion и нарушенный инвариант;
+- `get_payment_timeline` — связанные payment events;
+- `get_test_definition` — цель теста и ожидаемое поведение.
 
-#### `get_payment_timeline`
-
-Возвращает упорядоченные события платежа или idempotency key.
-
-#### `search_logs`
-
-Ищет разрешённые структурированные логи по correlation ID, payment ID и временному диапазону.
-
-#### `get_test_definition`
-
-Возвращает описание цели теста, ожидаемый инвариант и разрешённый фрагмент тестового кода.
+Агент не получает shell, произвольное чтение файлов, изменение кода или запись во внешние системы.
 
 ### Workflow
 
 ```text
-Load failure bundle
-  → run deterministic critical checks
-  → let the agent request evidence through tools
+Validate bundle
+  → apply deterministic critical checks
+  → request missing evidence through tools
   → validate cited evidence
-  → produce structured classification
-  → apply confidence and safety guardrails
-  → return report or request human review
-```
-
-### Structured result
-
-```python
-class TriageResult(BaseModel):
-    classification: FailureClassification
-    confidence: float
-    probable_cause: str
-    evidence_ids: list[str]
-    recommended_action: RecommendedAction
-    requires_human_review: bool
+  → return classification
+  → request human review when evidence is insufficient
 ```
 
 ### Guardrails
 
-- tools имеют только read-only доступ;
-- произвольные пути и команды запрещены;
-- неизвестный `evidence_id` делает ответ невалидным;
-- `confidence < 0.8` требует human review;
-- финансовый critical invariant нельзя переопределить ответом LLM;
-- отсутствие модели приводит к понятному fallback, а не ломает весь продукт.
+- финансовый инвариант нельзя отменить ответом модели;
+- неизвестный evidence ID делает ответ невалидным;
+- недостаток данных всегда приводит к human review;
+- unit-тесты используют fake model и не обращаются в сеть;
+- реальная модель используется только в ручной демонстрации;
+- отсутствие API key не ломает локальный запуск и тесты.
 
-### Демонстрация
-
-```bash
-uv run python -m payment_qa_agent.agent artifacts/run-123.json
-```
-
-Без API-ключа используется предсказуемый fake model. С настроенным ключом запускается один реальный model adapter.
-
-### Definition of Done
-
-- LangGraph workflow проходит от входного bundle до результата;
-- агент действительно выбирает и вызывает tools;
-- tool inputs и outputs валидируются;
-- unit-тесты используют fake model и не зависят от сети;
-- минимум три размеченных сценария проходят через agent workflow;
-- низкая уверенность и недостаток данных приводят к human review;
-- agent result сравнивается с deterministic baseline.
-
-### Демонстрируемые навыки
-
-LangGraph, tool calling, agent state, structured output, dependency injection, fake model testing, least privilege, guardrails и human-in-the-loop.
-
-## Релиз 5 — CI Quality Gate
-
-### Результат
-
-Завершённый MVP с воспроизводимой проверкой качества в CI и одной содержательной K6-проверкой.
-
-### Возможности
-
-- GitHub Actions запускает Ruff и PyTest;
-- AI unit-тесты работают без внешней модели;
-- integration job с реальной моделью запускается только вручную или при наличии secret;
-- локальный evaluation dataset содержит размеченные failure scenarios;
-- evaluation script считает долю правильных классификаций и долю корректных эскалаций;
-- K6 создаёт конкурентные запросы с одним idempotency key;
-- quality gate блокируется только детерминированными критериями.
-
-### Демонстрация
+### Запуск
 
 ```bash
-uv run ruff check .
+uv run python -m payment_qa_agent.agent examples/duplicate_payment.json
 uv run pytest
-uv run python -m payment_qa_agent.evaluate evals/cases.jsonl
-k6 run load/idempotency.js
 ```
 
 ### Definition of Done
 
-- чистый checkout поднимается по инструкции;
-- CI проходит без LLM API key;
-- evaluation выдаёт повторяемые метрики;
-- K6 подтверждает, что конкурентные повторы создают один платёж;
-- failure artifacts доступны как CI artifacts;
-- README содержит архитектуру, demo flow, ограничения и команды запуска;
-- все пять релизов остаются отдельно демонстрируемыми.
+- LangGraph workflow завершает все три сценария;
+- агент вызывает только разрешённые tools;
+- tool arguments и outputs валидируются;
+- deterministic critical result имеет приоритет над LLM output;
+- fake-model tests воспроизводимы;
+- результат сравнивается с deterministic baseline;
+- README объясняет ограничения агента.
 
-### Демонстрируемые навыки
+### Новые зависимости
 
-CI/CD, autonomous quality gates, AI evaluation, K6, concurrency testing, secrets handling и release decision design.
+- `langgraph`;
+- `langchain-core`;
+- один model adapter для ручной демонстрации.
+
+# Граница MVP
+
+После третьего релиза MVP завершён. В нём нет HTTP API, базы данных, автоматического создания багов, UI, нагрузочного тестирования или внешней observability-платформы.
+
+Итоговый MVP содержит:
+
+- один payment domain package;
+- три failure scenarios;
+- один deterministic classifier;
+- один LangGraph workflow;
+- три read-only agent tools;
+- два CLI;
+- unit-тесты и короткий README.
 
 # Расширенная версия
 
-Расширенная версия начинается только после завершения MVP. Каждое расширение должно отвечать на конкретный риск или улучшать измеримое качество системы.
+Расширения выполняются только после законченного MVP и не являются обязательными.
 
-## Расширение 1 — персистентность и транзакции
+## Расширение 1 — Payment API
 
-- SQLite с SQLAlchemy;
-- уникальное ограничение для idempotency key;
-- атомарное создание платежа;
-- Alembic migrations;
-- тест конкурентной гонки на уровне базы.
+- FastAPI endpoints для создания и чтения платежей;
+- HTTPX integration tests;
+- retry через настоящий HTTP-запрос;
+- duplicate и out-of-order webhook.
 
-Ценность: показать, как idempotency обеспечивается не только in-memory логикой, но и транзакционными гарантиями.
+Пакеты: `fastapi`, `httpx`.
 
-## Расширение 2 — более богатая платёжная модель
+## Расширение 2 — AI evaluation
 
-- fees и rounding rules;
-- double-entry ledger и проверка `debits = credits`;
+- LangSmith traces;
+- небольшой размеченный dataset;
+- classification accuracy;
+- evidence grounding;
+- сравнение prompt versions.
+
+Пакет: `langsmith`.
+
+## Расширение 3 — CI и K6
+
+- GitHub Actions для тестов;
+- один K6-сценарий с конкурентными запросами и одинаковым idempotency key;
+- failure artifacts как CI artifacts.
+
+K6 добавляется только после HTTP API.
+
+## Расширение 4 — платёжный домен
+
+- fees и rounding;
+- ledger invariant `debits = credits`;
 - refunds и reversals;
-- FX conversion с `Decimal`;
-- blockchain confirmations;
-- сценарий reorg и возвращение транзакции в промежуточное состояние;
-- reconciliation между внутренними и внешними записями.
+- FX conversion;
+- blockchain confirmations и reorg;
+- reconciliation.
 
-Ценность: углубить понимание fiat, stablecoin и ledger testing.
+Сценарии добавляются по одному, а не одним большим блоком.
 
-## Расширение 3 — LangSmith observability и evaluations
+## Расширение 5 — персистентность
 
-- traces реальных agent runs;
-- размеченный dataset;
-- сравнение prompt или model versions;
-- проверка корректности tool selection;
-- отдельные метрики classification accuracy, evidence grounding и escalation quality;
-- regression evaluation перед изменением prompt или workflow.
+- SQLite;
+- уникальное ограничение idempotency key;
+- атомарная запись платежа;
+- тест конкурентной гонки.
 
-Ценность: продемонстрировать, что качество AI измеряется, а не оценивается по одному красивому примеру.
+ORM и migrations добавляются только при реальной необходимости.
 
-## Расширение 4 — intelligent regression selection
+# Что намеренно исключено
 
-- чтение ограниченного git diff;
-- карта изменений к payment risks;
-- рекомендация regression scope;
-- объяснение, почему выбраны конкретные тесты;
-- сравнение рекомендации с заранее размеченными PR examples.
+В проект не планируются без отдельной причины:
 
-Ценность: приблизить проект к AI-driven CI quality gates из вакансии.
+- frontend и Playwright UI-тесты;
+- Docker и Kubernetes;
+- Kafka, Redis и Celery;
+- RAG и vector database;
+- несколько agent frameworks;
+- Grafana и Prometheus;
+- автоматическое изменение тестов;
+- полностью автономное решение о релизе.
 
-## Расширение 5 — контролируемые действия агента
+# История для интервью после MVP
 
-- разрешённый `rerun_test` с allowlist и лимитом повторов;
-- проверка flaky hypothesis на основании нескольких запусков;
-- формирование bug draft;
-- создание внешнего issue только после явного human approval;
-- журнал всех tool calls и решений.
+> I built a small payment-domain library covering idempotency, transaction states and timelines. I then added a deterministic failure classifier and used it as a baseline for a guarded LangGraph triage agent. The agent investigates failures through three narrow read-only tools, returns structured evidence and escalates cases with insufficient data. Financial rules remain deterministic, and all agent tests run against a fake model without network access.
 
-Ценность: перейти от read-only investigation к безопасной ограниченной автономности.
+# Следующий шаг
 
-## Расширение 6 — расширенное тестирование
-
-- Hypothesis для генерации amounts, currencies и последовательностей событий;
-- model-based/stateful testing payment state machine;
-- дополнительные K6 spike и retry-storm scenarios;
-- fault injection для timeout, duplicate delivery и partial failure;
-- контрактные проверки OpenAPI;
-- security cases для prompt injection через логи и test artifacts.
-
-Ценность: усилить и обычную QA-инженерию, и AI-specific risk testing.
-
-## Расширение 7 — упаковка и наблюдаемость
-
-- Docker image;
-- CLI на Typer;
-- OpenTelemetry traces;
-- структурированные логи через отдельную библиотеку при доказанной необходимости;
-- простой read-only dashboard и один Playwright E2E flow.
-
-Ценность: сделать демонстрацию удобнее, не меняя основную архитектуру.
-
-# Что проект демонстрирует на интервью
-
-| Область | Доказательство в проекте |
-|---|---|
-| Python | Типизированные модели, state machine, exceptions и CLI |
-| PyTest | Fixtures, parametrization, hooks и failure artifacts |
-| API testing | FastAPI sandbox и HTTPX integration tests |
-| Payments | Idempotency, retries, states, webhooks и concurrency |
-| AI-native QA | Agent самостоятельно собирает доказательства через tools |
-| Agent architecture | LangGraph state, routing, tool calling и fallback |
-| AI safety | Read-only tools, evidence validation и human review |
-| AI evaluation | Размеченные cases и повторяемые метрики |
-| CI/CD | Детерминированные quality gates и CI artifacts |
-| Performance | K6-проверка конкурентной idempotency |
-| Engineering judgment | Осознанное разделение детерминированной логики и AI |
-
-# Готовая история для интервью
-
-После завершения MVP проект можно описать так:
-
-> I built a payment QA sandbox in Python and PyTest that covers idempotency, retries, transaction states and webhook ordering. Failed tests produce structured evidence bundles. A guarded LangGraph agent investigates those failures through narrow read-only tools, returns a typed classification with cited evidence and escalates low-confidence cases to a human. Financial release rules remain deterministic. The complete workflow runs in CI, is evaluated against labelled failure scenarios and includes a K6 concurrency check for duplicate-payment prevention.
-
-# Порядок работы
-
-Работа ведётся строго по релизам:
-
-1. Завершить и продемонстрировать Payment Core.
-2. Только после этого добавить HTTP API.
-3. Создать deterministic triage и failure artifacts без LLM.
-4. Добавить LangGraph поверх работающего baseline.
-5. Завершить MVP CI, evaluation и одной K6-проверкой.
-6. Выбирать расширения по их пользе для подготовки и интервью.
-
-Новая технология не добавляется, если текущий релиз можно закончить без неё или если её роль невозможно объяснить одной фразой.
+Payment Core завершён. Следующая задача — определить минимальные `FailureBundle` и `TriageResult` schemas и подготовить три sample failure bundles для deterministic triage.
 
