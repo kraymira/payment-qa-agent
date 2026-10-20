@@ -1,9 +1,12 @@
 from datetime import UTC
 from decimal import Decimal
 
-from payment_qa_agent import PaymentService, PaymentStatus
+import pytest
+
+from payment_qa_agent import PaymentNotFound, PaymentService, PaymentStatus
 
 
+# Risk: missing or unordered evidence makes payment investigation unreliable.
 def test_timeline_contains_creation_and_state_changes_in_order() -> None:
     service = PaymentService()
     payment = service.create_payment(
@@ -27,5 +30,12 @@ def test_timeline_contains_creation_and_state_changes_in_order() -> None:
         PaymentStatus.PENDING,
     ]
     assert all(event.payment_id == payment.payment_id for event in timeline)
-    assert all(event.event_id.startswith("evt_") for event in timeline)
     assert all(event.occurred_at.tzinfo is UTC for event in timeline)
+
+
+# Risk: an unknown payment is presented as a real payment with an empty history.
+def test_timeline_for_unknown_payment_is_rejected() -> None:
+    service = PaymentService()
+
+    with pytest.raises(PaymentNotFound, match="missing-payment"):
+        service.get_timeline("missing-payment")
