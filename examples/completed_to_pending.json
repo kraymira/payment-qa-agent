@@ -1,0 +1,36 @@
+{
+  "test_name": "test_completed_payment_is_terminal",
+  "assertion": "expected completed payment to remain completed, found pending",
+  "payment_ids": ["pay_3"],
+  "timeline": [
+    {
+      "event_id": "evt_1",
+      "payment_id": "pay_3",
+      "previous_status": null,
+      "current_status": "created",
+      "occurred_at": "2026-10-25T09:00:00Z"
+    },
+    {
+      "event_id": "evt_2",
+      "payment_id": "pay_3",
+      "previous_status": "created",
+      "current_status": "pending",
+      "occurred_at": "2026-10-25T09:00:01Z"
+    },
+    {
+      "event_id": "evt_3",
+      "payment_id": "pay_3",
+      "previous_status": "pending",
+      "current_status": "completed",
+      "occurred_at": "2026-10-25T09:00:02Z"
+    },
+    {
+      "event_id": "evt_4",
+      "payment_id": "pay_3",
+      "previous_status": "completed",
+      "current_status": "pending",
+      "occurred_at": "2026-10-25T09:00:03Z"
+    }
+  ],
+  "invariant": "completed payment must remain completed"
+}

@@ -1,0 +1,7 @@
+{
+  "test_name": "test_provider_response",
+  "assertion": "expected provider response, request timed out",
+  "payment_ids": [],
+  "timeline": [],
+  "invariant": null
+}

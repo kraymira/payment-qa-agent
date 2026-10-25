@@ -1,0 +1,7 @@
+{
+  "test_name": "test_retry_does_not_duplicate_payment",
+  "assertion": "expected one payment, found two",
+  "payment_ids": ["pay_1", "pay_2"],
+  "timeline": [],
+  "invariant": "one idempotency key must map to one payment"
+}

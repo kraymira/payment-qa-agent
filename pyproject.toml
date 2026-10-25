@@ -4,11 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "payment-qa-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "A guarded AI workflow for triaging payment test failures"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+  "pydantic>=2.12,<3",
+]
 
 [dependency-groups]
 dev = [

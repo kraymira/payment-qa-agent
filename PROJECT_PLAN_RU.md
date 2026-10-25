@@ -140,6 +140,11 @@ uv run pytest
 
 - `pydantic` только для входной и выходной схемы.
 
+### Статус
+
+Релиз реализован в ветке `feature/deterministic-triage` и ожидает совместного
+ревью перед слиянием в `main`.
+
 ## Релиз 3 — Guarded AI Triage
 
 ### Рабочий результат
@@ -284,4 +289,3 @@ ORM и migrations добавляются только при реальной н
 # Следующий шаг
 
 Payment Core завершён. Следующая задача — определить минимальные `FailureBundle` и `TriageResult` schemas и подготовить три sample failure bundles для deterministic triage.
-

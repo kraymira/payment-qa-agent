@@ -6,7 +6,7 @@ The project starts with deterministic payment rules and evolves into a guarded A
 
 The detailed Russian plan is in [`PROJECT_PLAN_RU.md`](PROJECT_PLAN_RU.md).
 
-## Current release: Payment Core
+## Current release: Deterministic Triage
 
 Implemented:
 
@@ -15,18 +15,26 @@ Implemented:
 - idempotent in-memory payment creation;
 - an explicit payment state machine;
 - an ordered in-memory transaction timeline;
+- validated JSON failure bundles;
+- deterministic classification of three failure scenarios;
+- evidence-grounded triage results;
+- a JSON command-line interface;
 - domain-specific errors and PyTest coverage.
 
 Run:
 
 ```bash
+uv run python -m payment_qa_agent.triage examples/duplicate_payment.json
 uv run pytest
 ```
+
+The human-readable decision table is in
+[`docs/deterministic-triage-rules.md`](docs/deterministic-triage-rules.md).
 
 ## Lean roadmap
 
 1. **Payment Core** — deterministic payment rules. Complete.
-2. **Deterministic Triage** — classify three JSON failure examples without an LLM.
+2. **Deterministic Triage** — classify three JSON failure examples without an LLM. Complete.
 3. **Guarded AI Triage** — use LangGraph and three read-only tools, with deterministic rules taking priority.
 
 HTTP APIs, LangSmith, K6, CI and persistence are optional extensions after the MVP.
