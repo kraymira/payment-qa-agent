@@ -1,4 +1,4 @@
-"""Validated input and output contracts for deterministic triage."""
+"""Validated input and output contracts shared by all triage workflows."""
 
 from datetime import datetime
 from enum import StrEnum
@@ -14,7 +14,6 @@ from pydantic import (
 )
 
 from payment_qa_agent.models import PaymentStatus
-
 
 NonEmptyString = Annotated[
     str,
@@ -60,7 +59,7 @@ class TimelineEntry(BaseModel):
 
 
 class FailureBundle(BaseModel):
-    """Validated facts available to the deterministic classifier."""
+    """Validated facts supplied to a triage workflow."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -95,9 +94,7 @@ class FailureBundle(BaseModel):
         }
         if unknown_payment_ids:
             unknown = ", ".join(sorted(unknown_payment_ids))
-            raise ValueError(
-                f"timeline references unknown payment IDs: {unknown}"
-            )
+            raise ValueError(f"timeline references unknown payment IDs: {unknown}")
 
         timestamps = [event.occurred_at for event in self.timeline]
         if timestamps != sorted(timestamps):
@@ -112,17 +109,13 @@ class FailureBundle(BaseModel):
         evidence_ids = {"assertion"}
         if self.invariant is not None:
             evidence_ids.add("invariant")
-        evidence_ids.update(
-            f"payment:{payment_id}" for payment_id in self.payment_ids
-        )
-        evidence_ids.update(
-            f"event:{event.event_id}" for event in self.timeline
-        )
+        evidence_ids.update(f"payment:{payment_id}" for payment_id in self.payment_ids)
+        evidence_ids.update(f"event:{event.event_id}" for event in self.timeline)
         return frozenset(evidence_ids)
 
 
 class TriageResult(BaseModel):
-    """Structured deterministic classification with cited evidence."""
+    """Structured classification with cited evidence."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 

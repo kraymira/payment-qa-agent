@@ -1,4 +1,4 @@
-"""Public interface of the deterministic payment core."""
+"""Public interface of the payment core and triage data contracts."""
 
 from payment_qa_agent.classifier import classify
 from payment_qa_agent.exceptions import (
@@ -24,9 +24,9 @@ from payment_qa_agent.triage_models import (
 __all__ = [
     "Classification",
     "FailureBundle",
-    "Invariant",
     "IdempotencyConflict",
     "InvalidPaymentTransition",
+    "Invariant",
     "Payment",
     "PaymentError",
     "PaymentEvent",
