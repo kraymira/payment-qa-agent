@@ -1,4 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
+from threading import Barrier
 
 import pytest
 
@@ -41,6 +43,29 @@ def test_repeated_request_returns_same_payment() -> None:
 
     assert repeated_payment == first_payment
     assert len(service.get_timeline(first_payment.payment_id)) == 1
+
+
+# Risk: simultaneous retries pass the initial key lookup before any request is stored.
+def test_concurrent_retries_create_one_payment() -> None:
+    service = PaymentService()
+    workers = 20
+    barrier = Barrier(workers)
+
+    def create() -> str:
+        barrier.wait()
+        payment = service.create_payment(
+            idempotency_key="concurrent-123",
+            amount=Decimal("19.99"),
+            currency="EUR",
+        )
+        return payment.payment_id
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        payment_ids = set(executor.map(lambda _: create(), range(workers)))
+
+    assert len(payment_ids) == 1
+    payment_id = payment_ids.pop()
+    assert len(service.get_timeline(payment_id)) == 1
 
 
 # Risk: a retry returns the stale snapshot created before payment processing began.

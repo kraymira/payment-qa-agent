@@ -241,6 +241,12 @@ unit-тесты работают без API-ключа и сети.
 
 Пакеты: `fastapi`, `httpx`.
 
+### Статус
+
+Минимальный HTTP-срез реализован в `v0.4.0`: создание и чтение платежа,
+обязательный `Idempotency-Key`, ответы `409` и `422`, HTTPX integration tests.
+Webhook-сценарии пока не добавлены.
+
 ## Расширение 2 — AI evaluation
 
 - LangSmith traces;
@@ -258,6 +264,12 @@ unit-тесты работают без API-ключа и сети.
 - failure artifacts как CI artifacts.
 
 K6 добавляется только после HTTP API.
+
+### Статус
+
+K6-сценарий реализован в `v0.4.0`. Он отправляет 20 параллельных запросов с
+одним idempotency key и проверяет, что все ответы содержат один payment ID.
+JSON summary сохраняется в `artifacts/`. GitHub Actions пока не добавлен.
 
 ## Расширение 4 — платёжный домен
 
@@ -298,4 +310,7 @@ ORM и migrations добавляются только при реальной н
 
 # Следующий шаг
 
-Payment Core завершён. Следующая задача — определить минимальные `FailureBundle` и `TriageResult` schemas и подготовить три sample failure bundles для deterministic triage.
+MVP, минимальный Payment API и K6 concurrency scenario завершены. Следующее
+осмысленное расширение — либо GitHub Actions для автоматического запуска
+PyTest, либо SQLite с уникальным ограничением idempotency key для защиты между
+несколькими процессами.

@@ -4,19 +4,22 @@ build-backend = "hatchling.build"
 
 [project]
 name = "payment-qa-agent"
-version = "0.3.0"
-description = "A guarded AI workflow for triaging payment test failures"
+version = "0.4.0"
+description = "Payment QA with guarded AI triage and concurrency testing"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+  "fastapi>=0.162.6",
   "langchain-core>=1.7.4",
   "langchain-openai>=1.7.3",
   "langgraph>=1.2.19",
   "pydantic>=2.12,<3",
+  "uvicorn>=0.54.0",
 ]
 
 [dependency-groups]
 dev = [
+  "httpx>=0.28.1",
   "pytest>=8.0",
 ]
 

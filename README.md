@@ -6,7 +6,7 @@ The project starts with deterministic payment rules and evolves into a guarded A
 
 The detailed Russian plan is in [`PROJECT_PLAN_RU.md`](PROJECT_PLAN_RU.md).
 
-## Current release: Guarded AI Triage
+## Current release: Payment API and concurrent idempotency
 
 Implemented:
 
@@ -23,6 +23,9 @@ Implemented:
 - three validated read-only evidence tools;
 - evidence and human-review guardrails;
 - an offline fallback and an optional OpenAI adapter;
+- a minimal FastAPI create/read boundary;
+- process-safe in-memory idempotency under concurrent requests;
+- HTTPX integration tests and a parallel K6 scenario;
 - domain-specific errors and PyTest coverage.
 
 Run:
@@ -33,18 +36,29 @@ uv run python -m payment_qa_agent.agent examples/insufficient_evidence.json
 uv run pytest
 ```
 
+Run the HTTP API and K6 scenario in separate terminals:
+
+```bash
+uv run uvicorn payment_qa_agent.api:app --host 127.0.0.1 --port 8000
+./scripts/run-k6.sh
+```
+
 The human-readable decision table is in
 [`docs/deterministic-triage-rules.md`](docs/deterministic-triage-rules.md).
 The graph, tool boundaries and safety rules are documented in
 [`docs/guarded-ai-triage.md`](docs/guarded-ai-triage.md).
+The HTTP contract and concurrency scenario are documented in
+[`docs/payment-api-k6.md`](docs/payment-api-k6.md).
 
 ## Lean roadmap
 
 1. **Payment Core** — deterministic payment rules. Complete.
 2. **Deterministic Triage** — classify three JSON failure examples without an LLM. Complete.
 3. **Guarded AI Triage** — use LangGraph and three read-only tools, with deterministic rules taking priority. Complete.
+4. **Payment API and K6** — expose idempotent creation over HTTP and prove one
+   key produces one payment under concurrent requests. Complete.
 
-HTTP APIs, LangSmith, K6, CI and persistence are optional extensions after the MVP.
+LangSmith, CI and persistence remain optional extensions after the MVP.
 
 For a manual model-backed run, set `OPENAI_API_KEY` and pass
 `--provider openai`. The default offline mode requires no credentials or
